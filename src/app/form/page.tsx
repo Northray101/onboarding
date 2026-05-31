@@ -2,31 +2,33 @@
 
 export const dynamic = 'force-static'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, Suspense, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase, type Form, type Question } from '@/lib/supabase'
-import { Star, ChevronRight, ChevronLeft, Check } from 'lucide-react'
 
-const slideVariants = {
-  enter: (dir: number) => ({ x: dir > 0 ? '60%' : '-60%', opacity: 0, scale: 0.95 }),
-  center: { x: 0, opacity: 1, scale: 1 },
-  exit: (dir: number) => ({ x: dir > 0 ? '-60%' : '60%', opacity: 0, scale: 0.95 }),
+const E = [0.16, 1, 0.3, 1] as [number, number, number, number]
+
+const slideVars = {
+  enter: (dir: number) => ({ opacity: 0, y: dir > 0 ? 28 : -28 }),
+  center: { opacity: 1, y: 0 },
+  exit:  (dir: number) => ({ opacity: 0, y: dir > 0 ? -28 : 28 }),
 }
 
 function FormInner() {
   const searchParams = useSearchParams()
   const slug = searchParams.get('slug')
 
-  const [form, setForm] = useState<Form | null>(null)
-  const [questions, setQuestions] = useState<Question[]>([])
+  const [form, setForm]       = useState<Form | null>(null)
+  const [questions, setQ]     = useState<Question[]>([])
   const [answers, setAnswers] = useState<Record<string, unknown>>({})
-  const [index, setIndex] = useState(0)
-  const [dir, setDir] = useState(1)
+  const [index, setIndex]     = useState(0)
+  const [dir, setDir]         = useState(1)
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [error, setError]     = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const startTime = useRef(Date.now())
 
   useEffect(() => {
     if (!slug) { setError('No form specified.'); setLoading(false); return }
@@ -35,37 +37,35 @@ function FormInner() {
       if (!f) { setError('Form not found or not published.'); setLoading(false); return }
       setForm(f)
       const { data: q } = await supabase.from('questions').select('*').eq('form_id', f.id).order('position')
-      setQuestions(q ?? [])
+      setQ(q ?? [])
       setLoading(false)
     }
     load()
   }, [slug])
 
-  const current = questions[index]
-  const isFirst = index === 0
-  const isLast = index === questions.length - 1
-  const isThankYou = current?.type === 'thank_you'
-  const progress = questions.length > 0 ? (index / Math.max(questions.length - 1, 1)) * 100 : 0
+  const current   = questions[index]
+  const isFirst   = index === 0
+  const isLast    = index === questions.length - 1
+  const isThanks  = current?.type === 'thank_you'
+  const progress  = questions.length > 1 ? (index / (questions.length - 1)) * 100 : 0
 
   function canAdvance() {
     if (!current) return false
     if (current.type === 'welcome' || current.type === 'thank_you') return true
     if (!current.config.required) return true
-    const ans = answers[current.id]
-    return ans !== undefined && ans !== null && ans !== ''
+    const a = answers[current.id]
+    return a !== undefined && a !== null && a !== ''
   }
 
   async function advance() {
     if (!canAdvance()) return
-    if (isLast || isThankYou) { await submit(); return }
-    setDir(1)
-    setIndex(i => i + 1)
+    if (isLast || isThanks) { await submit(); return }
+    setDir(1); setIndex(i => i + 1)
   }
 
   function back() {
     if (isFirst) return
-    setDir(-1)
-    setIndex(i => i - 1)
+    setDir(-1); setIndex(i => i - 1)
   }
 
   async function submit() {
@@ -75,82 +75,115 @@ function FormInner() {
     setSubmitting(false)
   }
 
-  const primary = form?.theme?.primary ?? '#6366f1'
-  const accent = form?.theme?.accent ?? '#ec4899'
-  const bg = form?.theme?.bg ?? '#0b0b14'
+  const primary = form?.theme?.primary ?? '#c9a84c'
+  const bg      = form?.theme?.bg      ?? '#090909'
 
+  /* ── Loading ── */
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b0b14' }}>
-      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        className="w-10 h-10 rounded-full border-2 border-t-transparent"
-        style={{ borderColor: '#6366f1', borderTopColor: 'transparent' }} />
+    <div style={{ background: bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="anim-spin" style={{ width: 24, height: 24, borderRadius: '50%', border: `1px solid rgba(255,255,255,0.1)`, borderTopColor: primary }} />
     </div>
   )
 
+  /* ── Error ── */
   if (error) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#0b0b14' }}>
-      <div className="text-center">
-        <p className="text-2xl font-bold text-white mb-2">Oops</p>
-        <p style={{ color: 'rgba(255,255,255,0.5)' }}>{error}</p>
+    <div style={{ background: bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+      <div style={{ textAlign: 'center' }}>
+        <p style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 300, color: 'var(--text)', marginBottom: 12 }}>Oops.</p>
+        <p style={{ color: 'var(--text-60)', fontSize: '0.93rem' }}>{error}</p>
       </div>
     </div>
   )
 
-  if (submitted) return (
-    <div className="min-h-screen flex items-center justify-center px-6 relative overflow-hidden" style={{ background: bg }}>
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-20"
-          style={{ background: `radial-gradient(circle, ${primary}, transparent)` }} />
-      </div>
-      <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', duration: 0.8 }} className="text-center max-w-md relative z-10">
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.2, stiffness: 200 }}
-          className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8"
-          style={{ background: `linear-gradient(135deg, ${primary}, ${accent})` }}>
-          <Check size={40} className="text-white" />
+  /* ── Submitted ── */
+  if (submitted) {
+    const thanks = questions.find(q => q.type === 'thank_you')
+    return (
+      <div style={{ background: bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, position: 'relative', overflow: 'hidden' }}>
+        <div className="fixed pointer-events-none" style={{ inset: 0, background: `radial-gradient(ellipse at 50% 60%, ${primary}10 0%, transparent 65%)` }} />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, ease: E }}
+          style={{ textAlign: 'center', maxWidth: 480, position: 'relative', zIndex: 1 }}
+        >
+          {/* Check mark */}
+          <motion.div
+            initial={{ scale: 0, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 0.3, type: 'spring', stiffness: 180, damping: 18 }}
+            style={{
+              width: 64, height: 64, borderRadius: '50%',
+              border: `1px solid ${primary}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 36px',
+              color: primary,
+              fontSize: 24,
+            }}
+          >
+            ✓
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.7, ease: E }}
+            style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(40px, 6vw, 64px)', fontWeight: 300, color: 'var(--text)', lineHeight: 1.05, marginBottom: 20 }}
+          >
+            {thanks?.title ?? 'Thank you.'}
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
+            style={{ color: 'var(--text-60)', fontSize: '1rem', lineHeight: 1.75 }}
+          >
+            {thanks?.subtitle ?? "Your responses have been recorded. We'll be in touch soon."}
+          </motion.p>
         </motion.div>
-        <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          className="text-4xl font-bold text-white mb-4">
-          {questions.find(q => q.type === 'thank_you')?.title ?? 'All done!'}
-        </motion.h1>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
-          style={{ color: 'rgba(255,255,255,0.55)' }}>
-          {questions.find(q => q.type === 'thank_you')?.subtitle ?? "Your responses have been recorded. We'll be in touch soon."}
-        </motion.p>
-      </motion.div>
-    </div>
-  )
+      </div>
+    )
+  }
 
+  /* ── Form ── */
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: bg }}>
-      {/* Ambient blobs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <motion.div animate={{ x: [0, 30, 0], y: [0, -20, 0] }} transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute w-[500px] h-[500px] rounded-full opacity-15"
-          style={{ background: `radial-gradient(circle, ${primary}, transparent)`, top: '-10%', left: '-10%' }} />
-        <motion.div animate={{ x: [0, -25, 0], y: [0, 25, 0] }} transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut', delay: 4 }}
-          className="absolute w-[400px] h-[400px] rounded-full opacity-15"
-          style={{ background: `radial-gradient(circle, ${accent}, transparent)`, bottom: '-10%', right: '-10%' }} />
+    <div style={{ background: bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+
+      {/* Ambient glow */}
+      <div className="fixed pointer-events-none" style={{ inset: 0, background: `radial-gradient(ellipse at 30% 40%, ${primary}07 0%, transparent 60%)` }} />
+
+      {/* Progress line */}
+      <div className="fixed" style={{ top: 0, left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.05)', zIndex: 50 }}>
+        <motion.div
+          style={{ height: '100%', background: primary, transformOrigin: 'left' }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.5, ease: E }}
+        />
       </div>
 
-      {/* Progress bar */}
-      <div className="fixed top-0 left-0 right-0 h-1 z-50" style={{ background: 'rgba(255,255,255,0.06)' }}>
-        <motion.div className="h-full" style={{ background: `linear-gradient(90deg, ${primary}, ${accent})` }}
-          animate={{ width: `${progress}%` }} transition={{ duration: 0.5, ease: 'easeInOut' }} />
+      {/* Top meta */}
+      <div className="fixed" style={{ top: 0, left: 0, right: 0, padding: '20px 36px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 40 }}>
+        {form && (
+          <span className="caps" style={{ color: 'rgba(255,255,255,0.18)', fontSize: '10px' }}>
+            {form.client_name ? `For ${form.client_name}` : form.title}
+          </span>
+        )}
+        {!isThanks && questions.length > 1 && (
+          <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: '12px', fontWeight: 300 }}>
+            {index + 1}<span style={{ opacity: 0.4 }}> / {questions.length}</span>
+          </span>
+        )}
       </div>
 
-      {!isThankYou && (
-        <div className="fixed top-4 right-6 z-40">
-          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>{index + 1} / {questions.length}</span>
-        </div>
-      )}
-
-      <div className="flex-1 flex items-center justify-center px-6 py-20 relative z-10">
-        <div className="w-full max-w-2xl">
+      {/* Main question area */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: '80px 40px', position: 'relative', zIndex: 10 }}>
+        <div style={{ width: '100%', maxWidth: 680, margin: '0 auto' }}>
           <AnimatePresence mode="wait" custom={dir}>
-            <motion.div key={current?.id ?? 'empty'} custom={dir} variants={slideVariants}
-              initial="enter" animate="center" exit="exit"
-              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}>
+            <motion.div
+              key={current?.id ?? 'empty'}
+              custom={dir}
+              variants={slideVars}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.42, ease: E }}
+            >
               {current && (
                 <SlideContent
                   question={current}
@@ -158,7 +191,6 @@ function FormInner() {
                   onChange={val => setAnswers(a => ({ ...a, [current.id]: val }))}
                   onEnter={advance}
                   primary={primary}
-                  accent={accent}
                 />
               )}
             </motion.div>
@@ -166,26 +198,41 @@ function FormInner() {
         </div>
       </div>
 
-      <div className="fixed bottom-8 left-0 right-0 flex items-center justify-center gap-4 z-40">
-        {!isFirst && (
-          <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            onClick={back} className="flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-medium"
-            style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(10px)' }}>
-            <ChevronLeft size={16} /> Back
-          </motion.button>
-        )}
-        {!isThankYou && (
+      {/* Bottom nav */}
+      <div className="fixed" style={{ bottom: 0, left: 0, right: 0, padding: '28px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 40 }}>
+        {!isFirst ? (
           <motion.button
-            whileHover={{ scale: canAdvance() ? 1.05 : 1 }} whileTap={{ scale: canAdvance() ? 0.96 : 1 }}
-            onClick={advance} disabled={!canAdvance() || submitting}
-            className="flex items-center gap-2 px-8 py-3 rounded-2xl text-sm font-semibold text-white"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            whileHover={{ x: -2 }}
+            onClick={back}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.28)', fontSize: '12px', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            ← Back
+          </motion.button>
+        ) : <div />}
+
+        {!isThanks && (
+          <motion.button
+            whileHover={{ scale: canAdvance() ? 1.02 : 1 }}
+            whileTap={{ scale: canAdvance() ? 0.98 : 1 }}
+            onClick={advance}
+            disabled={!canAdvance() || submitting}
             style={{
-              background: canAdvance() ? `linear-gradient(135deg, ${primary}, ${accent})` : 'rgba(255,255,255,0.1)',
-              color: canAdvance() ? 'white' : 'rgba(255,255,255,0.3)',
-              boxShadow: canAdvance() ? `0 0 30px ${primary}50` : 'none',
-              transition: 'all 0.3s',
-            }}>
-            {submitting ? 'Submitting…' : isLast ? 'Submit' : <>Continue <ChevronRight size={16} /></>}
+              padding: '12px 32px',
+              border: `1px solid ${canAdvance() ? primary : 'rgba(255,255,255,0.12)'}`,
+              background: canAdvance() ? primary : 'transparent',
+              color: canAdvance() ? bg : 'rgba(255,255,255,0.25)',
+              fontFamily: 'var(--font-ui)',
+              fontSize: '12px',
+              letterSpacing: '0.09em',
+              textTransform: 'uppercase',
+              borderRadius: 2,
+              cursor: canAdvance() && !submitting ? 'pointer' : 'not-allowed',
+              transition: 'all 0.25s',
+              fontWeight: 500,
+            }}
+          >
+            {submitting ? 'Submitting…' : isLast ? 'Submit' : 'Continue →'}
           </motion.button>
         )}
       </div>
@@ -194,104 +241,292 @@ function FormInner() {
 }
 
 export default function FormPage() {
-  return <Suspense fallback={<div className="min-h-screen" style={{ background: '#0b0b14' }} />}><FormInner /></Suspense>
+  return (
+    <Suspense fallback={<div style={{ background: '#090909', minHeight: '100vh' }} />}>
+      <FormInner />
+    </Suspense>
+  )
 }
 
-function SlideContent({ question: q, answer, onChange, onEnter, primary, accent }: {
+/* ── Slide Content ── */
+function SlideContent({ question: q, answer, onChange, onEnter, primary }: {
   question: Question; answer: unknown; onChange: (v: unknown) => void
-  onEnter: () => void; primary: string; accent: string
+  onEnter: () => void; primary: string
 }) {
+  const filled = answer !== undefined && answer !== null && answer !== ''
+
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="text-4xl md:text-5xl font-bold text-white leading-tight">
-          {q.title}{q.config.required && <span style={{ color: primary }}> *</span>}
-        </motion.h1>
-        {q.subtitle && (
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-            className="mt-4 text-xl" style={{ color: 'rgba(255,255,255,0.55)' }}>{q.subtitle}</motion.p>
-        )}
-      </div>
-
-      {(q.type === 'short_text' || q.type === 'email' || q.type === 'phone') && (
-        <motion.input initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-          autoFocus type={q.type === 'email' ? 'email' : q.type === 'phone' ? 'tel' : 'text'}
-          value={(answer as string) ?? ''} onChange={e => onChange(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && onEnter()}
-          placeholder={q.config.placeholder ?? 'Type your answer…'}
-          className="w-full text-xl text-white border-b-2 pb-3 bg-transparent placeholder:opacity-30 focus:outline-none"
-          style={{ borderColor: answer ? primary : 'rgba(255,255,255,0.2)', transition: 'border-color 0.3s' }} />
+    <div>
+      {/* Question number — small, elegant */}
+      {q.type !== 'welcome' && q.type !== 'thank_you' && (
+        <motion.p
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }}
+          style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: `${primary}70`, marginBottom: 20, letterSpacing: '0.04em' }}
+        >
+          ——
+        </motion.p>
       )}
 
-      {q.type === 'long_text' && (
-        <motion.textarea initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-          autoFocus value={(answer as string) ?? ''} onChange={e => onChange(e.target.value)}
-          placeholder={q.config.placeholder ?? 'Your answer…'} rows={5}
-          className="w-full text-lg text-white rounded-2xl p-5 resize-none focus:outline-none"
-          style={{ background: 'rgba(255,255,255,0.05)', border: `2px solid ${answer ? primary : 'rgba(255,255,255,0.1)'}`, transition: 'border-color 0.3s' }} />
+      {/* Question title */}
+      <motion.h1
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.65, ease: E }}
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 'clamp(36px, 5.5vw, 68px)',
+          fontWeight: 300,
+          color: 'var(--text)',
+          lineHeight: 1.08,
+          letterSpacing: '-0.015em',
+          marginBottom: q.subtitle ? 16 : 0,
+        }}
+      >
+        {q.title}
+        {q.config.required && <span style={{ color: primary, fontSize: '0.5em', verticalAlign: 'super', marginLeft: 4 }}>*</span>}
+      </motion.h1>
+
+      {/* Subtitle */}
+      {q.subtitle && (
+        <motion.p
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+          style={{ color: 'var(--text-60)', fontSize: '1.05rem', lineHeight: 1.7, marginBottom: 0 }}
+        >
+          {q.subtitle}
+        </motion.p>
       )}
 
-      {q.type === 'yes_no' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="flex gap-4">
-          {['Yes', 'No'].map(opt => (
-            <motion.button key={opt} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-              onClick={() => onChange(opt)}
-              className="flex-1 py-5 rounded-2xl text-xl font-semibold transition-all"
+      {/* ── Input types ── */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.55, ease: E }}>
+
+        {/* Short text / email / phone */}
+        {(q.type === 'short_text' || q.type === 'email' || q.type === 'phone') && (
+          <div style={{ marginTop: 40 }}>
+            <input
+              autoFocus
+              type={q.type === 'email' ? 'email' : q.type === 'phone' ? 'tel' : 'text'}
+              value={(answer as string) ?? ''}
+              onChange={e => onChange(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && onEnter()}
+              placeholder={q.config.placeholder || 'Type your answer…'}
               style={{
-                background: answer === opt ? `linear-gradient(135deg, ${primary}, ${accent})` : 'rgba(255,255,255,0.06)',
-                color: answer === opt ? 'white' : 'rgba(255,255,255,0.6)',
-                border: `2px solid ${answer === opt ? 'transparent' : 'rgba(255,255,255,0.1)'}`,
-                boxShadow: answer === opt ? `0 0 30px ${primary}40` : 'none',
-              }}>{opt}</motion.button>
-          ))}
-        </motion.div>
-      )}
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: `1px solid ${filled ? primary : 'rgba(255,255,255,0.15)'}`,
+                color: 'var(--text)',
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(20px, 3vw, 30px)',
+                fontWeight: 300,
+                padding: '8px 0 12px',
+                transition: 'border-color 0.3s',
+                outline: 'none',
+              }}
+            />
+            <p style={{ color: 'rgba(255,255,255,0.18)', fontSize: '11px', marginTop: 8, letterSpacing: '0.04em' }}>
+              Press Enter ↵ to continue
+            </p>
+          </div>
+        )}
 
-      {q.type === 'multiple_choice' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="flex flex-col gap-3">
-          {(q.config.options ?? []).map((opt, i) => {
-            const isSelected = answer === opt
-            return (
-              <motion.button key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.07 }}
-                whileHover={{ x: 4 }} whileTap={{ scale: 0.99 }} onClick={() => onChange(opt)}
-                className="flex items-center gap-4 w-full text-left px-5 py-4 rounded-2xl transition-all"
-                style={{ background: isSelected ? `${primary}20` : 'rgba(255,255,255,0.04)', border: `2px solid ${isSelected ? primary : 'rgba(255,255,255,0.08)'}` }}>
-                <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0"
-                  style={{ borderColor: isSelected ? primary : 'rgba(255,255,255,0.2)', background: isSelected ? primary : 'transparent' }}>
-                  {isSelected && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-2.5 h-2.5 rounded-full bg-white" />}
-                </div>
-                <span className="text-lg" style={{ color: isSelected ? 'white' : 'rgba(255,255,255,0.7)' }}>{opt}</span>
-                <span className="ml-auto text-sm font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>{String.fromCharCode(65 + i)}</span>
-              </motion.button>
-            )
-          })}
-        </motion.div>
-      )}
+        {/* Long text */}
+        {q.type === 'long_text' && (
+          <div style={{ marginTop: 40 }}>
+            <textarea
+              autoFocus
+              value={(answer as string) ?? ''}
+              onChange={e => onChange(e.target.value)}
+              placeholder={q.config.placeholder || 'Your answer…'}
+              rows={4}
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: `1px solid ${filled ? primary : 'rgba(255,255,255,0.15)'}`,
+                borderLeft: filled ? `1px solid ${primary}30` : 'none',
+                color: 'var(--text)',
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(18px, 2.5vw, 24px)',
+                fontWeight: 300,
+                padding: filled ? '12px 16px 12px' : '8px 0 12px',
+                transition: 'all 0.3s',
+                outline: 'none',
+                resize: 'none',
+                lineHeight: 1.6,
+              }}
+            />
+          </div>
+        )}
 
-      {q.type === 'rating' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="flex gap-3">
-          {[...Array(q.config.max_rating ?? 5)].map((_, i) => {
-            const val = i + 1
-            const isActive = (answer as number) >= val
-            return (
-              <motion.button key={i} whileHover={{ scale: 1.2, rotate: 10 }} whileTap={{ scale: 0.9 }} onClick={() => onChange(val)}>
-                <Star size={44} fill={isActive ? primary : 'none'}
-                  style={{ color: isActive ? primary : 'rgba(255,255,255,0.2)', filter: isActive ? `drop-shadow(0 0 8px ${primary})` : 'none' }} />
-              </motion.button>
-            )
-          })}
-        </motion.div>
-      )}
+        {/* Yes / No */}
+        {q.type === 'yes_no' && (
+          <div style={{ display: 'flex', gap: 16, marginTop: 44 }}>
+            {['Yes', 'No'].map(opt => (
+              <button
+                key={opt}
+                onClick={() => onChange(opt)}
+                style={{
+                  flex: 1, padding: '18px 24px',
+                  background: answer === opt ? `${primary}15` : 'transparent',
+                  border: `1px solid ${answer === opt ? primary : 'rgba(255,255,255,0.14)'}`,
+                  borderRadius: 2,
+                  color: answer === opt ? primary : 'rgba(255,255,255,0.55)',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '22px',
+                  fontWeight: 300,
+                  letterSpacing: '0.04em',
+                  cursor: 'pointer',
+                  transition: 'all 0.22s',
+                }}
+                onMouseEnter={e => {
+                  if (answer !== opt) {
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = `${primary}50`
+                    ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text)'
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (answer !== opt) {
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.14)'
+                    ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.55)'
+                  }
+                }}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        )}
 
-      {q.type === 'welcome' && (
-        <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={onEnter}
-          className="self-start flex items-center gap-2 px-8 py-4 rounded-2xl text-lg font-semibold text-white"
-          style={{ background: `linear-gradient(135deg, ${primary}, ${accent})`, boxShadow: `0 0 40px ${primary}50` }}>
-          Get Started <ChevronRight size={20} />
-        </motion.button>
-      )}
+        {/* Multiple choice */}
+        {q.type === 'multiple_choice' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 44 }}>
+            {(q.config.options ?? []).map((opt, i) => {
+              const isSel = answer === opt
+              return (
+                <motion.button
+                  key={i}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 + i * 0.06, duration: 0.4, ease: E }}
+                  onClick={() => onChange(opt)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 16,
+                    padding: '14px 18px',
+                    background: isSel ? `${primary}0d` : 'transparent',
+                    border: `1px solid ${isSel ? primary : 'rgba(255,255,255,0.1)'}`,
+                    borderRadius: 2,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    textAlign: 'left',
+                    width: '100%',
+                  }}
+                  onMouseEnter={e => {
+                    if (!isSel) (e.currentTarget as HTMLButtonElement).style.borderColor = `${primary}50`
+                  }}
+                  onMouseLeave={e => {
+                    if (!isSel) (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)'
+                  }}
+                >
+                  {/* Letter key */}
+                  <span style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: '13px',
+                    color: isSel ? primary : 'rgba(255,255,255,0.28)',
+                    width: 20,
+                    flexShrink: 0,
+                    transition: 'color 0.2s',
+                  }}>
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  {/* Vertical divider */}
+                  <div style={{ width: 1, height: 20, background: isSel ? `${primary}40` : 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
+                  <span style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 'clamp(16px, 2vw, 20px)',
+                    fontWeight: 300,
+                    color: isSel ? 'var(--text)' : 'rgba(255,255,255,0.65)',
+                    transition: 'color 0.2s',
+                    flex: 1,
+                  }}>
+                    {opt}
+                  </span>
+                  {isSel && (
+                    <motion.span
+                      initial={{ scale: 0 }} animate={{ scale: 1 }}
+                      style={{ color: primary, fontSize: '14px', flexShrink: 0 }}
+                    >
+                      ✓
+                    </motion.span>
+                  )}
+                </motion.button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Rating */}
+        {q.type === 'rating' && (
+          <div style={{ display: 'flex', gap: 10, marginTop: 44, flexWrap: 'wrap' }}>
+            {[...Array(q.config.max_rating ?? 5)].map((_, i) => {
+              const val = i + 1
+              const isActive = (answer as number) >= val
+              return (
+                <motion.button
+                  key={i}
+                  whileHover={{ scale: 1.15 }}
+                  whileTap={{ scale: 0.92 }}
+                  onClick={() => onChange(val)}
+                  style={{
+                    width: 52, height: 52,
+                    border: `1px solid ${isActive ? primary : 'rgba(255,255,255,0.14)'}`,
+                    background: isActive ? `${primary}14` : 'transparent',
+                    color: isActive ? primary : 'rgba(255,255,255,0.35)',
+                    fontFamily: 'var(--font-display)',
+                    fontSize: '18px',
+                    fontWeight: 300,
+                    borderRadius: 2,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  {val}
+                </motion.button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Welcome CTA */}
+        {q.type === 'welcome' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.6, ease: E }}
+            style={{ marginTop: 52 }}
+          >
+            <button
+              onClick={onEnter}
+              style={{
+                padding: '14px 36px',
+                border: `1px solid ${primary}`,
+                background: primary,
+                color: '#090909',
+                fontFamily: 'var(--font-ui)',
+                fontSize: '12px',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                fontWeight: 600,
+                borderRadius: 2,
+                cursor: 'pointer',
+                transition: 'opacity 0.2s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              Begin →
+            </button>
+          </motion.div>
+        )}
+      </motion.div>
     </div>
   )
 }

@@ -1,27 +1,28 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 
+const E = [0.16, 1, 0.3, 1] as [number, number, number, number]
+
 const PRESETS = [
-  { label: 'Brand Design', desc: 'Logo, colors, typography, brand voice' },
-  { label: 'Web Design', desc: 'Goals, pages, features, timeline' },
-  { label: 'Social Media', desc: 'Platforms, audience, content style' },
-  { label: 'Photography', desc: 'Style, location, deliverables, dates' },
-  { label: 'Copywriting', desc: 'Tone, audience, channels, keywords' },
-  { label: 'Custom', desc: 'Start with a blank form' },
+  { label: 'Brand Design', hint: 'Identity, colors, typography, brand voice' },
+  { label: 'Web Design', hint: 'Goals, pages, features, timeline' },
+  { label: 'Social Media', hint: 'Platforms, audience, content style' },
+  { label: 'Photography', hint: 'Style, location, deliverables, dates' },
+  { label: 'Copywriting', hint: 'Tone, audience, channels, keywords' },
+  { label: 'Custom', hint: 'Start with a blank form' },
 ]
 
 const THEMES = [
-  { name: 'Indigo', primary: '#6366f1', accent: '#ec4899', bg: '#0b0b14' },
-  { name: 'Violet', primary: '#8b5cf6', accent: '#06b6d4', bg: '#0d0b14' },
-  { name: 'Rose', primary: '#f43f5e', accent: '#fb923c', bg: '#140b0b' },
-  { name: 'Emerald', primary: '#10b981', accent: '#6366f1', bg: '#0b140e' },
-  { name: 'Amber', primary: '#f59e0b', accent: '#ec4899', bg: '#14110b' },
+  { name: 'Champagne', primary: '#c9a84c', accent: '#e8c87a', bg: '#090909' },
+  { name: 'Indigo',    primary: '#6366f1', accent: '#818cf8', bg: '#090909' },
+  { name: 'Rose',      primary: '#e11d48', accent: '#fb7185', bg: '#090909' },
+  { name: 'Teal',      primary: '#0d9488', accent: '#2dd4bf', bg: '#090909' },
+  { name: 'Amber',     primary: '#d97706', accent: '#fbbf24', bg: '#090909' },
 ]
 
 function slugify(s: string) {
@@ -48,138 +49,198 @@ export default function NewFormPage() {
       theme: { primary: theme.primary, accent: theme.accent, bg: theme.bg },
       is_published: false,
     }).select().single()
-    if (data && !error) {
-      router.push(`/admin/builder?id=${data.id}`)
-    }
+    if (data && !error) router.push(`/admin/builder?id=${data.id}`)
     setSaving(false)
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#0b0b14' }}>
-      <div className="border-b" style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-        <div className="max-w-3xl mx-auto px-6 py-5 flex items-center gap-4">
+    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+      <div className="fixed pointer-events-none" style={{ bottom: '-10%', right: '-5%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.05) 0%, transparent 65%)' }} />
+
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 40px' }}>
+        {/* Nav */}
+        <motion.nav
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          className="flex items-center gap-8"
+          style={{ paddingTop: 36, paddingBottom: 36, borderBottom: '1px solid var(--border-sub)' }}
+        >
           <Link href="/admin">
-            <motion.button whileHover={{ x: -2 }} className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              <ArrowLeft size={14} /> Dashboard
-            </motion.button>
+            <span className="caps" style={{ color: 'var(--text-35)', cursor: 'pointer' }}>← Dashboard</span>
           </Link>
-          <div className="w-px h-4" style={{ background: 'rgba(255,255,255,0.1)' }} />
-          <h1 className="text-xl font-semibold text-white">New Form</h1>
-        </div>
-      </div>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: '26px', fontWeight: 400 }}>
+            New Form
+          </span>
+        </motion.nav>
 
-      <div className="max-w-3xl mx-auto px-6 py-12 w-full flex-1">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        {/* Steps */}
+        <div style={{ paddingTop: '8vh', paddingBottom: '8vh' }}>
+          <AnimatePresence mode="wait">
 
-          {/* Step 0: preset */}
-          {step === 0 && (
-            <div>
-              <h2 className="text-3xl font-bold text-white mb-2">Choose a template</h2>
-              <p className="mb-8" style={{ color: 'rgba(255,255,255,0.4)' }}>Start from a preset or build from scratch</p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {PRESETS.map((p) => (
-                  <motion.button
-                    key={p.label}
-                    whileHover={{ scale: 1.03, borderColor: '#6366f1' }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      if (p.label !== 'Custom') setTitle(`${p.label} Onboarding`)
-                      setStep(1)
-                    }}
-                    className="glass rounded-2xl p-5 text-left transition-all"
-                    style={{ border: '1px solid rgba(255,255,255,0.08)' }}
-                  >
-                    <div className="font-semibold text-white mb-1">{p.label}</div>
-                    <div className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{p.desc}</div>
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-          )}
+            {/* ── Step 0: Template ── */}
+            {step === 0 && (
+              <motion.div
+                key="s0"
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.5, ease: E }}
+              >
+                <p className="caps" style={{ color: 'var(--gold)', marginBottom: 20 }}>Step 01 — Template</p>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(36px, 5vw, 56px)', fontWeight: 300, color: 'var(--text)', marginBottom: 12, lineHeight: 1.05 }}>
+                  Choose a<br /><em>starting point.</em>
+                </h2>
+                <p style={{ color: 'var(--text-60)', marginBottom: 48, fontSize: '0.93rem' }}>
+                  Start from a preset or build from scratch.
+                </p>
 
-          {/* Step 1: details */}
-          {step === 1 && (
-            <div>
-              <h2 className="text-3xl font-bold text-white mb-2">Form details</h2>
-              <p className="mb-8" style={{ color: 'rgba(255,255,255,0.4)' }}>Name your form and set it up for your client</p>
-
-              <div className="flex flex-col gap-5">
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: 'rgba(255,255,255,0.6)' }}>Form Title *</label>
-                  <input
-                    value={title}
-                    onChange={e => setTitle(e.target.value)}
-                    placeholder="e.g. Brand Design Onboarding"
-                    className="w-full px-4 py-3 rounded-xl text-white placeholder:opacity-30 focus:ring-2 focus:ring-indigo-500"
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-                  />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {PRESETS.map((p, i) => (
+                    <motion.button
+                      key={p.label}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + i * 0.06, duration: 0.45, ease: E }}
+                      onClick={() => {
+                        if (p.label !== 'Custom') setTitle(`${p.label} Onboarding`)
+                        setStep(1)
+                      }}
+                      className="flex items-center justify-between text-left"
+                      style={{
+                        padding: '18px 20px',
+                        background: 'transparent',
+                        border: '1px solid var(--border-sub)',
+                        borderRadius: 'var(--radius)',
+                        cursor: 'pointer',
+                        transition: 'border-color 0.2s, background 0.2s',
+                        marginBottom: 6,
+                      }}
+                      onMouseEnter={e => {
+                        (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'
+                        ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-card)'
+                      }}
+                      onMouseLeave={e => {
+                        (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-sub)'
+                        ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+                      }}
+                    >
+                      <div>
+                        <p style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 400, color: 'var(--text)' }}>
+                          {p.label}
+                        </p>
+                        <p style={{ color: 'var(--text-35)', fontSize: '0.8rem', marginTop: 3 }}>{p.hint}</p>
+                      </div>
+                      <span style={{ color: 'var(--gold)', fontSize: '18px', opacity: 0.6 }}>→</span>
+                    </motion.button>
+                  ))}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: 'rgba(255,255,255,0.6)' }}>Client Name</label>
-                  <input
-                    value={clientName}
-                    onChange={e => setClientName(e.target.value)}
-                    placeholder="e.g. Acme Corp"
-                    className="w-full px-4 py-3 rounded-xl text-white placeholder:opacity-30 focus:ring-2 focus:ring-indigo-500"
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: 'rgba(255,255,255,0.6)' }}>Description</label>
-                  <textarea
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    placeholder="Brief description of this form..."
-                    rows={3}
-                    className="w-full px-4 py-3 rounded-xl text-white placeholder:opacity-30 focus:ring-2 focus:ring-indigo-500 resize-none"
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-                  />
-                </div>
+              </motion.div>
+            )}
 
-                <div>
-                  <label className="block text-sm font-medium mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>Theme Color</label>
-                  <div className="flex gap-3 flex-wrap">
-                    {THEMES.map(t => (
-                      <motion.button
-                        key={t.name}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setTheme(t)}
-                        title={t.name}
-                        className="w-10 h-10 rounded-full relative"
-                        style={{
-                          background: `linear-gradient(135deg, ${t.primary}, ${t.accent})`,
-                          boxShadow: theme.name === t.name ? `0 0 0 3px white, 0 0 0 5px ${t.primary}` : 'none',
-                        }}
-                      />
-                    ))}
+            {/* ── Step 1: Details ── */}
+            {step === 1 && (
+              <motion.div
+                key="s1"
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.5, ease: E }}
+              >
+                <p className="caps" style={{ color: 'var(--gold)', marginBottom: 20 }}>Step 02 — Details</p>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(36px, 5vw, 56px)', fontWeight: 300, color: 'var(--text)', marginBottom: 12, lineHeight: 1.05 }}>
+                  Name &amp; theme.
+                </h2>
+                <p style={{ color: 'var(--text-60)', marginBottom: 52, fontSize: '0.93rem' }}>
+                  Configure your form before building its slides.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
+                  <div>
+                    <label className="caps" style={{ color: 'var(--text-35)', display: 'block', marginBottom: 12 }}>
+                      Form Title *
+                    </label>
+                    <input
+                      className="input-line"
+                      value={title}
+                      onChange={e => setTitle(e.target.value)}
+                      placeholder="e.g. Brand Design Onboarding"
+                      style={{ fontSize: '1.1rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="caps" style={{ color: 'var(--text-35)', display: 'block', marginBottom: 12 }}>
+                      Client Name
+                    </label>
+                    <input
+                      className="input-line"
+                      value={clientName}
+                      onChange={e => setClientName(e.target.value)}
+                      placeholder="e.g. Acme Corporation"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="caps" style={{ color: 'var(--text-35)', display: 'block', marginBottom: 12 }}>
+                      Description
+                    </label>
+                    <textarea
+                      className="input-line"
+                      value={description}
+                      onChange={e => setDescription(e.target.value)}
+                      placeholder="Brief description of this form…"
+                      rows={2}
+                      style={{ resize: 'none' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="caps" style={{ color: 'var(--text-35)', display: 'block', marginBottom: 16 }}>
+                      Accent Color
+                    </label>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      {THEMES.map(t => (
+                        <button
+                          key={t.name}
+                          onClick={() => setTheme(t)}
+                          title={t.name}
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: '50%',
+                            background: t.primary,
+                            border: `2px solid ${theme.name === t.name ? 'var(--text)' : 'transparent'}`,
+                            outline: theme.name === t.name ? `1px solid ${t.primary}` : 'none',
+                            outlineOffset: 3,
+                            cursor: 'pointer',
+                            transition: 'transform 0.15s',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.15)')}
+                          onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rule-sub" />
+
+                  <div className="flex gap-3">
+                    <button className="btn-ghost" onClick={() => setStep(0)}>← Back</button>
+                    <button
+                      className="btn-gold"
+                      onClick={create}
+                      disabled={!title.trim() || saving}
+                      style={{
+                        flex: 1,
+                        justifyContent: 'center',
+                        opacity: (!title.trim() || saving) ? 0.45 : 1,
+                        cursor: (!title.trim() || saving) ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {saving ? 'Creating…' : 'Create & Open Builder →'}
+                    </button>
                   </div>
                 </div>
+              </motion.div>
+            )}
 
-                <div className="flex gap-3 pt-4">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    onClick={() => setStep(0)}
-                    className="px-5 py-3 rounded-xl font-medium"
-                    style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)' }}
-                  >
-                    Back
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={create}
-                    disabled={!title.trim() || saving}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-white"
-                    style={{ background: 'linear-gradient(135deg, #6366f1, #ec4899)', opacity: (!title.trim() || saving) ? 0.5 : 1 }}
-                  >
-                    {saving ? 'Creating...' : <><Sparkles size={16} /> Create & Open Builder</>}
-                  </motion.button>
-                </div>
-              </div>
-            </div>
-          )}
-        </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   )
