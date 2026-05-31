@@ -1,19 +1,21 @@
 import type { Metadata } from 'next'
-import { Cormorant_Garamond, Sora } from 'next/font/google'
+import { Fraunces, Instrument_Sans } from 'next/font/google'
 import './globals.css'
 
-const cormorant = Cormorant_Garamond({
+const fraunces = Fraunces({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600'],
+  axes: ['opsz', 'WONK'],
+  weight: 'variable',
   style: ['normal', 'italic'],
-  variable: '--font-cormorant',
+  variable: '--font-fraunces',
   display: 'swap',
 })
 
-const sora = Sora({
+const instrument = Instrument_Sans({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600'],
-  variable: '--font-sora',
+  weight: ['400', '500', '600'],
+  style: ['normal', 'italic'],
+  variable: '--font-instrument',
   display: 'swap',
 })
 
@@ -24,7 +26,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${cormorant.variable} ${sora.variable} h-full`}>
+    <html lang="en" className={`${fraunces.variable} ${instrument.variable} h-full`}>
       <body className="min-h-full">{children}</body>
     </html>
   )
