@@ -43,6 +43,7 @@ function FormInner() {
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   useEffect(() => {
     if (!slug) { setError('No form specified.'); setLoading(false); return }
@@ -84,7 +85,13 @@ function FormInner() {
 
   async function submit() {
     setSubmitting(true)
-    await supabase.from('responses').insert({ form_id: form!.id, answers })
+    setSubmitError('')
+    const { error: insertError } = await supabase.from('responses').insert({ form_id: form!.id, answers })
+    if (insertError) {
+      setSubmitError('Something went wrong. Please check your connection and try again.')
+      setSubmitting(false)
+      return
+    }
     setSubmitted(true)
     setSubmitting(false)
   }
@@ -230,24 +237,29 @@ function FormInner() {
         ) : <div />}
 
         {!isThanks && (
-          <motion.button
-            whileHover={{ scale: canAdvance() ? 1.03 : 1, filter: canAdvance() ? 'brightness(1.08)' : 'none' }}
-            whileTap={{ scale: canAdvance() ? 0.97 : 1 }}
-            onClick={advance}
-            disabled={!canAdvance() || submitting}
-            className="btn-sky"
-            style={{
-              background: canAdvance() ? primary : 'rgba(13,26,36,0.08)',
-              borderColor: canAdvance() ? primary : 'transparent',
-              color: canAdvance() ? '#fff' : 'rgba(13,26,36,0.3)',
-              boxShadow: canAdvance() ? `0 4px 20px ${primary}40` : 'none',
-              transition: 'all 0.25s',
-              cursor: canAdvance() && !submitting ? 'pointer' : 'not-allowed',
-              padding: '12px 30px',
-            }}
-          >
-            {submitting ? 'Submitting…' : isLast ? 'Submit' : 'Continue →'}
-          </motion.button>
+          <div>
+            {submitError && (
+              <p style={{ color: 'rgba(190,60,60,0.85)', fontSize: '13px', marginBottom: 12 }}>{submitError}</p>
+            )}
+            <motion.button
+              whileHover={{ scale: canAdvance() ? 1.03 : 1, filter: canAdvance() ? 'brightness(1.08)' : 'none' }}
+              whileTap={{ scale: canAdvance() ? 0.97 : 1 }}
+              onClick={advance}
+              disabled={!canAdvance() || submitting}
+              className="btn-sky"
+              style={{
+                background: canAdvance() ? primary : 'rgba(13,26,36,0.08)',
+                borderColor: canAdvance() ? primary : 'transparent',
+                color: canAdvance() ? '#fff' : 'rgba(13,26,36,0.3)',
+                boxShadow: canAdvance() ? `0 4px 20px ${primary}40` : 'none',
+                transition: 'all 0.25s',
+                cursor: canAdvance() && !submitting ? 'pointer' : 'not-allowed',
+                padding: '12px 30px',
+              }}
+            >
+              {submitting ? 'Submitting…' : isLast ? 'Submit' : 'Continue →'}
+            </motion.button>
+          </div>
         )}
       </div>
     </div>
