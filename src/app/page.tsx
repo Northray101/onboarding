@@ -76,7 +76,7 @@ export default function Home() {
             {...blurUp(0.22)}
             style={{
               fontFamily: 'var(--font-display)',
-              fontWeight: 100,
+              fontWeight: 500,
               fontSize: 'clamp(58px, 9vw, 124px)',
               lineHeight: 0.92,
               color: 'var(--text)',

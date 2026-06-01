@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-static'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import Link from 'next/link'
@@ -61,10 +61,13 @@ function BuilderInner() {
     if (data) { setQuestions(q => [...q, data as Question]); setSelected(data.id) }
   }
 
-  async function updateQuestion(q: Question) {
+  function patchQuestion(q: Question) {
+    setQuestions(qs => qs.map(x => x.id === q.id ? q : x))
+  }
+
+  async function saveQuestion(q: Question) {
     setSaving(true)
     await supabase.from('questions').update({ title: q.title, subtitle: q.subtitle, config: q.config }).eq('id', q.id)
-    setQuestions(qs => qs.map(x => x.id === q.id ? q : x))
     setSaving(false)
   }
 
@@ -211,7 +214,7 @@ function BuilderInner() {
               exit={{ opacity: 0, filter: 'blur(4px)', x: 14 }}
               transition={{ duration: 0.3, ease: E }}
               style={{ width: 272, flexShrink: 0, borderLeft: '1px solid var(--border-sub)', background: 'var(--bg-card)', overflowY: 'auto' }}>
-              <QuestionEditor question={selectedQ} onUpdate={updateQuestion} onDelete={deleteQuestion} />
+              <QuestionEditor question={selectedQ} onPatch={patchQuestion} onSave={saveQuestion} onDelete={deleteQuestion} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -246,7 +249,7 @@ function SlidePreview({ question: q, theme }: { question: Question; theme?: Form
 
       <p className="caps" style={{ color: 'var(--text-35)', marginBottom: 24, fontSize: '10px' }}>{TYPE_META[q.type].label}</p>
 
-      <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 'clamp(24px, 3vw, 34px)', color: 'var(--text)', lineHeight: 1.15, marginBottom: q.subtitle ? 10 : 24, letterSpacing: '-0.015em' }}>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 'clamp(24px, 3vw, 34px)', color: 'var(--text)', lineHeight: 1.15, marginBottom: q.subtitle ? 10 : 24, letterSpacing: '-0.015em' }}>
         {q.title}
         {q.config.required && <span style={{ color: primary }}> *</span>}
       </h2>
@@ -300,15 +303,20 @@ function SlidePreview({ question: q, theme }: { question: Question; theme?: Form
 }
 
 /* ── Question Editor ── */
-function QuestionEditor({ question, onUpdate, onDelete }: {
-  question: Question; onUpdate: (q: Question) => void; onDelete: (id: string) => void
+function QuestionEditor({ question, onPatch, onSave, onDelete }: {
+  question: Question; onPatch: (q: Question) => void; onSave: (q: Question) => void; onDelete: (id: string) => void
 }) {
   const [q, setQ] = useState(question)
-  useEffect(() => { setQ(question) }, [question])
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => { setQ(question) }, [question.id])
 
   function update(patch: Partial<Question>) {
     const updated = { ...q, ...patch }
-    setQ(updated); onUpdate(updated)
+    setQ(updated)
+    onPatch(updated)
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => onSave(updated), 600)
   }
   function cfg(patch: Partial<Question['config']>) {
     update({ config: { ...q.config, ...patch } })

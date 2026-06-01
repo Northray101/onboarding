@@ -278,7 +278,7 @@ function SlideContent({ question: q, answer, onChange, onEnter, primary, accent 
         transition={{ delay: 0.08, duration: 0.6, ease: E }}
         style={{
           fontFamily: 'var(--font-display)',
-          fontWeight: 100,
+          fontWeight: 600,
           fontSize: 'clamp(38px, 6vw, 72px)',
           color: 'var(--text)',
           lineHeight: 1.05,
@@ -320,7 +320,7 @@ function SlideContent({ question: q, answer, onChange, onEnter, primary, accent 
               style={{
                 width: '100%', background: 'transparent', border: 'none',
                 borderBottom: `2px solid ${filled ? primary : 'rgba(13,26,36,0.15)'}`,
-                color: 'var(--text)', fontFamily: 'var(--font-display)', fontWeight: 300,
+                color: 'var(--text)', fontFamily: 'var(--font-display)', fontWeight: 500,
                 fontSize: 'clamp(22px, 3.5vw, 36px)', padding: '6px 0 12px',
                 transition: 'border-color 0.3s', outline: 'none',
               }}
@@ -342,7 +342,7 @@ function SlideContent({ question: q, answer, onChange, onEnter, primary, accent 
                 width: '100%', background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(13,26,36,0.1)',
                 borderBottom: `2px solid ${filled ? primary : 'rgba(13,26,36,0.12)'}`,
                 borderRadius: '6px 6px 0 0',
-                color: 'var(--text)', fontFamily: 'var(--font-display)', fontWeight: 300,
+                color: 'var(--text)', fontFamily: 'var(--font-display)', fontWeight: 500,
                 fontSize: 'clamp(18px, 2.5vw, 26px)', padding: '16px 18px',
                 transition: 'border-color 0.3s', outline: 'none', resize: 'none', lineHeight: 1.65,
                 boxShadow: 'var(--shadow-sm)',
@@ -366,7 +366,7 @@ function SlideContent({ question: q, answer, onChange, onEnter, primary, accent 
                   color: answer === opt ? '#fff' : 'var(--text-60)',
                   fontFamily: 'var(--font-display)',
                   fontSize: 'clamp(18px, 2.5vw, 24px)',
-                  fontWeight: 300,
+                  fontWeight: 500,
                   cursor: 'pointer',
                   transition: 'all 0.22s',
                   boxShadow: answer === opt ? `0 6px 24px ${primary}35` : 'var(--shadow-sm)',
@@ -406,7 +406,7 @@ function SlideContent({ question: q, answer, onChange, onEnter, primary, accent 
                   <div style={{ width: 22, height: 22, borderRadius: '50%', border: `1.5px solid ${isSel ? primary : 'rgba(13,26,36,0.2)'}`, background: isSel ? primary : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
                     {isSel && <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ color: '#fff', fontSize: '11px' }}>✓</motion.span>}
                   </div>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(16px, 2.2vw, 22px)', fontWeight: 300, color: isSel ? 'var(--text)' : 'var(--text-60)', transition: 'color 0.2s', flex: 1 }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(16px, 2.2vw, 22px)', fontWeight: 500, color: isSel ? 'var(--text)' : 'var(--text-60)', transition: 'color 0.2s', flex: 1 }}>
                     {opt}
                   </span>
                   <span className="caps" style={{ color: isSel ? primary : 'rgba(13,26,36,0.18)', fontSize: '10px', flexShrink: 0 }}>

@@ -60,7 +60,7 @@ export default function AdminPage() {
               </span>
             </Link>
             <div style={{ width: 1, height: 18, background: 'var(--border-sub)' }} />
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: '24px', color: 'var(--text)', letterSpacing: '-0.015em' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: '24px', color: 'var(--text)', letterSpacing: '-0.015em' }}>
               Your Forms
             </span>
           </div>
@@ -86,9 +86,9 @@ export default function AdminPage() {
           ) : forms.length === 0 ? (
             <motion.div {...blurUp(0.1)} style={{ textAlign: 'center', paddingTop: '14vh', paddingBottom: '14vh' }}>
               <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg-tint)', border: '1px solid var(--border)', margin: '0 auto 28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 300, color: 'var(--sky)' }}>+</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 500, color: 'var(--sky)' }}>+</span>
               </div>
-              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: '40px', color: 'var(--text)', marginBottom: 14, letterSpacing: '-0.015em' }}>
+              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: '40px', color: 'var(--text)', marginBottom: 14, letterSpacing: '-0.015em' }}>
                 No forms yet.
               </p>
               <p style={{ color: 'var(--text-60)', marginBottom: 36, fontSize: '0.95rem' }}>

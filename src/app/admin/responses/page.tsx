@@ -62,7 +62,7 @@ function ResponsesInner() {
               <span style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 400, color: 'var(--sky-deep)', cursor: 'pointer' }}>← Builder</span>
             </Link>
             <div style={{ width: 1, height: 16, background: 'var(--border-sub)' }} />
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: '22px', color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: '22px', color: 'var(--text)', letterSpacing: '-0.01em' }}>
               {form?.title}
             </span>
           </div>
@@ -81,7 +81,7 @@ function ResponsesInner() {
               <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--bg-tint)', border: '1px solid var(--border)', margin: '0 auto 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ fontFamily: 'var(--font-display)', fontSize: '22px', color: 'var(--sky)' }}>✉</span>
               </div>
-              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 'clamp(32px, 4.5vw, 48px)', color: 'var(--text)', marginBottom: 12, letterSpacing: '-0.02em' }}>No responses yet.</p>
+              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 'clamp(32px, 4.5vw, 48px)', color: 'var(--text)', marginBottom: 12, letterSpacing: '-0.02em' }}>No responses yet.</p>
               <p style={{ color: 'var(--text-60)', maxWidth: 360, margin: '0 auto 28px', lineHeight: 1.7, fontSize: '0.93rem' }}>
                 Share your published form link to start collecting responses.
               </p>
@@ -126,7 +126,7 @@ function ResponsesInner() {
                             return (
                               <div key={q.id}>
                                 <p className="caps" style={{ color: 'var(--sky)', fontSize: '10px', marginBottom: 6 }}>{q.title}</p>
-                                <p style={{ color: 'var(--text)', fontSize: '15px', lineHeight: 1.6, fontFamily: q.type === 'long_text' ? 'var(--font-display)' : 'var(--font-ui)', fontWeight: q.type === 'long_text' ? 300 : 400 }}>
+                                <p style={{ color: 'var(--text)', fontSize: '15px', lineHeight: 1.6, fontFamily: q.type === 'long_text' ? 'var(--font-display)' : 'var(--font-ui)', fontWeight: q.type === 'long_text' ? 500 : 400 }}>
                                   {String(ans)}
                                 </p>
                               </div>
